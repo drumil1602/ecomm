@@ -38,7 +38,7 @@ const userLogin = async (req, res) => {
 
   if (isPasswordCorrect) {
     const payload = {
-      name: user.firstname,
+      email: user.email,
       role: user.role,
       exp: expiryDateTime,
     };
@@ -78,7 +78,7 @@ const forgotPassword = async (req, res) => {
       here is the link to reset the password ${resetPasswordLink}
     `);
       res.status(200).json({ message: "email is sent to reset password" });
-    }catch(err){
+    } catch (err) {
       return res.status(500).json({ message: "we are facing issuse while sending email" });
     }
   }
@@ -97,6 +97,34 @@ const resetPassword = async (req, res) => {
     return res.status(200).json({ message: "password reset successfully" });
   }
 }
+const changePassword = async (req, res) => {
+  try {
+    console.log(req.headers.authorization);
+    const tokenFromHeaders = req.headers.authorization.split(" ")[1];
+    console.log(tokenFromHeaders);
+    console.log(jwt.decode(tokenFromHeaders))
+    const { email } = jwt.decode(tokenFromHeaders);
+    const user = await UserModel.findOne({ email });
+    console.log(user)
+    console.log(req.body)
+
+    const newPassword = req.body.newPassword;
+    const isPasswordCorrect = bcrypt.compareSync(
+      req.body.password,
+      user.password
+    );
+    if (isPasswordCorrect) {
+      user.password = newPassword;
+      await user.save();
+    }else{
+      return res.status(403).json({ message: 'Password is not correct' });
+    }
+    res.status(200).json({ message: "password is changed successfully" });
+  } catch (err) {
+    console.log(err.message)
+    res.status(500).json({ message: "internal server error please try after some time" });
+  }
+}
 
 const controllers = {
   userRegistration,
@@ -104,6 +132,7 @@ const controllers = {
   userLogout,
   forgotPassword,
   resetPassword,
+  changePassword
 };
 
 module.exports = controllers;
